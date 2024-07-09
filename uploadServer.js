@@ -1,7 +1,23 @@
 const http = require('http')
 const url = require('url')
 const fs = require('fs')
+const multer = require('multer')
+
 const extractFilename = require('./extractFilename')
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, `${__dirname}/data`)
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname)
+    }
+})
+
+const upload = multer({ storage: storage })
+
+
+
 const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url)
     if (parsedUrl.path === '/uploadSingle' && req.method === 'POST') {
@@ -15,6 +31,25 @@ const server = http.createServer((req, res) => {
             res.end('file uploaded successfully')
         })
     } else if (parsedUrl.path === '/uploadMultiple' && req.method === 'POST') {
+        upload.array('files', 12)(req, res, function (err) {
+            if (err instanceof multer.MulterError) {
+                console.log(err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Upload failed' }));
+            } else if (err) {
+                console.log(err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Something went wrong' }));
+            } else {
+                console.log('File uploaded successfully');
+                console.log('Uploaded files:', req.files);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Upload successful' }));
+            }
+        });
+
+
+
     } else if (parsedUrl.path === '/uploadMultiExt' && req.method === 'POST') {
         console.log("hello")
         let body = [];
